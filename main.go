@@ -1,19 +1,22 @@
 package main
 
 import (
-	"log"
+	"go_rest/controllers"
+	"go_rest/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	connectDB()
+	utils.ConnectDB()
 
 	r := gin.Default() // ใช้ Default ซึ่งรวม Logger และ Recovery
+	// r.SetTrustedProxies([]string{"192.168.1.2"}) // Server Proxy แยกต่างหาก (ระบุ IP ของ Proxy นั้น)
+	r.SetTrustedProxies(nil)
 
 	// Custom 404
 	r.NoRoute(func(c *gin.Context) {
-		respondError(c, 404, "Route not found")
+		utils.RespondError(c, 404, "Route not found")
 	})
 
 	api := r.Group("/api")
@@ -21,22 +24,21 @@ func main() {
 		// Auth Routes
 		auth := api.Group("/auth")
 		{
-			auth.POST("/register", register)
-			auth.POST("/login", login)
+			auth.POST("/register", controllers.Register)
+			auth.POST("/login", controllers.Login)
 		}
 
 		// Protected Routes
 		address := api.Group("/address")
-		address.Use(AuthMiddleware()) // Middleware
+		address.Use(utils.AuthMiddleware()) // Middleware
 		{
-			address.GET("", getAllAddress)
-			address.POST("", createAddress)
-			address.GET("/:id", getAddressByID)
-			address.PUT("/:id", updateAddress)
-			address.DELETE("/:id", deleteAddress)
+			address.GET("", controllers.GetAllAddress)
+			address.POST("", controllers.CreateAddress)
+			address.GET("/:id", controllers.GetAddressByID)
+			address.PUT("/:id", controllers.UpdateAddress)
+			address.DELETE("/:id", controllers.DeleteAddress)
 		}
 	}
 
-	log.Println("Server running at :8080")
 	r.Run(":8080")
 }

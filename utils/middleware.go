@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"strings"
@@ -7,14 +7,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtSecret = []byte("my_secret_key")
+var JwtSecret = []byte("my_secret_key")
 
 // JWT Middleware for Gin
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			respondError(c, 401, "Missing token")
+			RespondError(c, 401, "Missing token")
 			c.Abort() // หยุดการทำงานของ Handler ถัดไป
 			return
 		}
@@ -22,18 +22,18 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Bearer <token>
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 {
-			respondError(c, 401, "Invalid token format")
+			RespondError(c, 401, "Invalid token format")
 			c.Abort()
 			return
 		}
 
 		tokenStr := parts[1]
 		token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
-			return jwtSecret, nil
+			return JwtSecret, nil
 		})
 
 		if err != nil || !token.Valid {
-			respondError(c, 401, "Invalid token")
+			RespondError(c, 401, "Invalid token")
 			c.Abort()
 			return
 		}

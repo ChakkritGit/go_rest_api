@@ -1,4 +1,4 @@
-module example/hello
+module go_rest
 
 go 1.25.5
 

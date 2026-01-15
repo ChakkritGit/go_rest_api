@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"github.com/gin-gonic/gin"
@@ -10,7 +10,7 @@ type APIResponse struct {
 	Data    interface{} `json:"data"`
 }
 
-func respondJSON(c *gin.Context, status int, message string, data interface{}) {
+func RespondJSON(c *gin.Context, status int, message string, data interface{}) {
 	c.JSON(status, APIResponse{
 		Code:    status,
 		Message: message,
@@ -18,6 +18,6 @@ func respondJSON(c *gin.Context, status int, message string, data interface{}) {
 	})
 }
 
-func respondError(c *gin.Context, status int, message string) {
-	respondJSON(c, status, message, nil)
+func RespondError(c *gin.Context, status int, message string) {
+	RespondJSON(c, status, message, nil)
 }
