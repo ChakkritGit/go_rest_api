@@ -1,13 +1,14 @@
 package utils
 
 import (
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var JwtSecret = []byte("my_secret_key")
+var JwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 // JWT Middleware for Gin
 func AuthMiddleware() gin.HandlerFunc {
