@@ -9,13 +9,19 @@ import (
 )
 
 func main() {
+	// 1. เชื่อมต่อ DB (ConnectDB จะเซ็ตค่าให้ database.DB)
 	database.ConnectDB()
 
-	r := gin.Default() // ใช้ Default ซึ่งรวม Logger และ Recovery
-	// r.SetTrustedProxies([]string{"192.168.1.2"}) // Server Proxy แยกต่างหาก (ระบุ IP ของ Proxy นั้น)
+	// ดึง instance ของ DB มาเก็บไว้เพื่อส่งต่อ
+	db := database.DB
+
+	// 2. สร้าง Controller Instances โดยส่ง db เข้าไป (Dependency Injection)
+	authCtrl := controllers.NewAuthController(db)
+	addressCtrl := controllers.NewAddressController(db)
+
+	r := gin.Default()
 	r.SetTrustedProxies(nil)
 
-	// Custom 404
 	r.NoRoute(func(c *gin.Context) {
 		utils.RespondError(c, 404, "Route not found")
 	})
@@ -25,19 +31,21 @@ func main() {
 		// Auth Routes
 		auth := api.Group("/auth")
 		{
-			auth.POST("/register", controllers.Register)
-			auth.POST("/login", controllers.Login)
+			// เรียกใช้ Method ผ่านตัวแปร authCtrl
+			auth.POST("/register", authCtrl.Register)
+			auth.POST("/login", authCtrl.Login)
 		}
 
 		// Protected Routes
 		address := api.Group("/address")
-		address.Use(utils.AuthMiddleware()) // Middleware
+		address.Use(utils.AuthMiddleware())
 		{
-			address.GET("", controllers.GetAllAddress)
-			address.POST("", controllers.CreateAddress)
-			address.GET("/:id", controllers.GetAddressByID)
-			address.PUT("/:id", controllers.UpdateAddress)
-			address.DELETE("/:id", controllers.DeleteAddress)
+			// เรียกใช้ Method ผ่านตัวแปร addressCtrl
+			address.GET("", addressCtrl.GetAllAddress)
+			address.POST("", addressCtrl.CreateAddress)
+			address.GET("/:id", addressCtrl.GetAddressByID)
+			address.PUT("/:id", addressCtrl.UpdateAddress)
+			address.DELETE("/:id", addressCtrl.DeleteAddress)
 		}
 	}
 

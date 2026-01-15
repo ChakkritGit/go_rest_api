@@ -1,36 +1,47 @@
 package controllers
 
 import (
-	"go_rest/database"
 	"go_rest/models"
 	"go_rest/utils"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
+// 1. สร้าง Struct และ Constructor
+type AddressController struct {
+	DB *gorm.DB
+}
+
+func NewAddressController(db *gorm.DB) *AddressController {
+	return &AddressController{DB: db}
+}
+
+// 2. เปลี่ยน function เป็น method และใช้ h.DB
+
 // GET /api/address
-func GetAllAddress(c *gin.Context) {
+func (h *AddressController) GetAllAddress(c *gin.Context) {
 	var list []models.AddressBook
-	database.DB.Find(&list)
+	h.DB.Find(&list)
 	utils.RespondJSON(c, http.StatusOK, "success", list)
 }
 
 // POST /api/address
-func CreateAddress(c *gin.Context) {
+func (h *AddressController) CreateAddress(c *gin.Context) {
 	var input models.AddressBook
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utils.RespondError(c, http.StatusBadRequest, "Invalid body")
 		return
 	}
 
-	database.DB.Create(&input)
+	h.DB.Create(&input)
 	utils.RespondJSON(c, http.StatusCreated, "created", input)
 }
 
 // GET /api/address/:id
-func GetAddressByID(c *gin.Context) {
+func (h *AddressController) GetAddressByID(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utils.RespondError(c, http.StatusBadRequest, "Invalid ID")
@@ -38,7 +49,7 @@ func GetAddressByID(c *gin.Context) {
 	}
 
 	var item models.AddressBook
-	if err := database.DB.First(&item, id).Error; err != nil {
+	if err := h.DB.First(&item, id).Error; err != nil {
 		utils.RespondError(c, http.StatusNotFound, "Not found")
 		return
 	}
@@ -46,7 +57,7 @@ func GetAddressByID(c *gin.Context) {
 }
 
 // PUT /api/address/:id
-func UpdateAddress(c *gin.Context) {
+func (h *AddressController) UpdateAddress(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utils.RespondError(c, http.StatusBadRequest, "Invalid ID")
@@ -54,7 +65,7 @@ func UpdateAddress(c *gin.Context) {
 	}
 
 	var item models.AddressBook
-	if err := database.DB.First(&item, id).Error; err != nil {
+	if err := h.DB.First(&item, id).Error; err != nil {
 		utils.RespondError(c, http.StatusNotFound, "Not found")
 		return
 	}
@@ -65,26 +76,24 @@ func UpdateAddress(c *gin.Context) {
 		return
 	}
 
-	// อัปเดตข้อมูล
 	item.Firstname = input.Firstname
 	item.Lastname = input.Lastname
 	item.Code = input.Code
 	item.Phone = input.Phone
 
-	database.DB.Save(&item)
+	h.DB.Save(&item)
 	utils.RespondJSON(c, http.StatusOK, "updated", item)
 }
 
 // DELETE /api/address/:id
-func DeleteAddress(c *gin.Context) {
+func (h *AddressController) DeleteAddress(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		utils.RespondError(c, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
-	// ใช้ DB.Delete โดยระบุ Struct ว่างและ ID
-	if err := database.DB.Delete(&models.AddressBook{}, id).Error; err != nil {
+	if err := h.DB.Delete(&models.AddressBook{}, id).Error; err != nil {
 		utils.RespondError(c, http.StatusNotFound, "Not found")
 		return
 	}

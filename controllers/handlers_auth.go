@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"go_rest/database"
 	"go_rest/models"
 	"go_rest/utils"
 	"net/http"
@@ -10,10 +9,23 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
+// 1. สร้าง Struct และ Constructor
+type AuthController struct {
+	DB *gorm.DB
+}
+
+func NewAuthController(db *gorm.DB) *AuthController {
+	return &AuthController{DB: db}
+}
+
+// 2. เปลี่ยน function เป็น method (มี h *AuthController นำหน้า)
+// และใช้ h.DB แทน database.DB
+
 // POST /api/auth/register
-func Register(c *gin.Context) {
+func (h *AuthController) Register(c *gin.Context) {
 	var input models.User
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utils.RespondError(c, http.StatusBadRequest, "Invalid request")
@@ -26,7 +38,8 @@ func Register(c *gin.Context) {
 		Password: string(hash),
 	}
 
-	if err := database.DB.Create(&user).Error; err != nil {
+	// ใช้ h.DB
+	if err := h.DB.Create(&user).Error; err != nil {
 		utils.RespondError(c, http.StatusBadRequest, "Username already exists")
 		return
 	}
@@ -35,7 +48,7 @@ func Register(c *gin.Context) {
 }
 
 // POST /api/auth/login
-func Login(c *gin.Context) {
+func (h *AuthController) Login(c *gin.Context) {
 	var input models.User
 	var user models.User
 
@@ -44,7 +57,8 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	if err := database.DB.Where("username = ?", input.Username).First(&user).Error; err != nil {
+	// ใช้ h.DB
+	if err := h.DB.Where("username = ?", input.Username).First(&user).Error; err != nil {
 		utils.RespondError(c, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
@@ -54,14 +68,13 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Create JWT
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenStr, _ := token.SignedString(utils.JwtSecret)
+	tokenStr, _ := token.SignedString(utils.GetJWTSecret())
 
 	utils.RespondJSON(c, http.StatusOK, "success", map[string]string{
 		"token": tokenStr,

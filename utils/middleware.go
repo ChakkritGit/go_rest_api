@@ -8,7 +8,9 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var JwtSecret = []byte(os.Getenv("JWT_SECRET"))
+func GetJWTSecret() []byte {
+	return []byte(os.Getenv("JWT_SECRET"))
+}
 
 // JWT Middleware for Gin
 func AuthMiddleware() gin.HandlerFunc {
@@ -30,7 +32,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		tokenStr := parts[1]
 		token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
-			return JwtSecret, nil
+			return GetJWTSecret(), nil
 		})
 
 		if err != nil || !token.Valid {
