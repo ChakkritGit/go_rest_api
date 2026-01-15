@@ -30,10 +30,34 @@ func (h *AddressController) GetAllAddress(c *gin.Context) {
 
 // POST /api/address
 func (h *AddressController) CreateAddress(c *gin.Context) {
-	var input models.AddressBook
-	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, "Invalid body")
-		return
+	// 1. รับค่าจาก Form (ไม่ใช่ JSON แล้ว)
+	firstname := c.PostForm("firstname")
+	lastname := c.PostForm("lastname")
+	codeStr := c.PostForm("code")
+	codeInt, err := strconv.Atoi(codeStr)
+	Phone := c.PostForm("Phone")
+
+	var imagePath string
+
+	// 2. รับไฟล์รูป (key ชื่อ "image")
+	file, err := c.FormFile("image")
+	if err == nil { // ถ้ามีการแนบไฟล์มา
+		// เรียก Utils ง่ายๆ บรรทัดเดียว!
+		savedPath, err := utils.SaveFile(c, file, "address")
+		if err != nil {
+			utils.RespondError(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		imagePath = savedPath
+	}
+
+	// 3. สร้างข้อมูล
+	input := models.AddressBook{
+		Firstname: firstname,
+		Lastname:  lastname,
+		Code:      codeInt,
+		Phone:     Phone,
+		Image:     imagePath, // บันทึก Path ลง DB
 	}
 
 	h.DB.Create(&input)
@@ -70,6 +94,22 @@ func (h *AddressController) UpdateAddress(c *gin.Context) {
 		return
 	}
 
+	file, err := c.FormFile("image")
+	if err == nil {
+		// 1. ลบรูปเก่าทิ้ง (ถ้ามี)
+		utils.RemoveFile(item.Image)
+
+		// 2. อัปโหลดรูปใหม่
+		newPath, err := utils.SaveFile(c, file, "address")
+		if err != nil {
+			utils.RespondError(c, 400, err.Error())
+			return
+		}
+		item.Image = newPath // อัปเดต Path
+	}
+
+	h.DB.Save(&item)
+
 	var input models.AddressBook
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utils.RespondError(c, http.StatusBadRequest, "Invalid body")
@@ -87,15 +127,18 @@ func (h *AddressController) UpdateAddress(c *gin.Context) {
 
 // DELETE /api/address/:id
 func (h *AddressController) DeleteAddress(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		utils.RespondError(c, http.StatusBadRequest, "Invalid ID")
-		return
-	}
+	id, _ := strconv.Atoi(c.Param("id"))
 
-	if err := h.DB.Delete(&models.AddressBook{}, id).Error; err != nil {
+	var item models.AddressBook
+	if err := h.DB.First(&item, id).Error; err != nil {
 		utils.RespondError(c, http.StatusNotFound, "Not found")
 		return
 	}
+
+	// [เพิ่ม] ลบรูปไฟล์จริงออกจากเครื่องก่อน
+	// เรียก Utils ง่ายๆ บรรทัดเดียว!
+	utils.RemoveFile(item.Image)
+
+	h.DB.Delete(&item)
 	utils.RespondJSON(c, http.StatusOK, "deleted", nil)
 }

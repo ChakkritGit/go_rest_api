@@ -16,4 +16,5 @@ type AddressBook struct {
 	Lastname  string `json:"lastname"`
 	Code      int    `json:"code"`
 	Phone     string `json:"phone"`
+	Image     string `json:"image"`
 }
