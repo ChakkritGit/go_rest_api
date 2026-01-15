@@ -1,8 +1,7 @@
 package main
 
 import (
-	"encoding/json"
-	"net/http"
+	"github.com/gin-gonic/gin"
 )
 
 type APIResponse struct {
@@ -11,16 +10,14 @@ type APIResponse struct {
 	Data    interface{} `json:"data"`
 }
 
-func respondJSON(w http.ResponseWriter, status int, message string, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(APIResponse{
+func respondJSON(c *gin.Context, status int, message string, data interface{}) {
+	c.JSON(status, APIResponse{
 		Code:    status,
 		Message: message,
 		Data:    data,
 	})
 }
 
-func respondError(w http.ResponseWriter, status int, message string) {
-	respondJSON(w, status, message, nil)
+func respondError(c *gin.Context, status int, message string) {
+	respondJSON(c, status, message, nil)
 }

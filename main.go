@@ -2,28 +2,41 @@ package main
 
 import (
 	"log"
-	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	connectDB()
 
-	mux := http.NewServeMux()
+	r := gin.Default() // ใช้ Default ซึ่งรวม Logger และ Recovery
 
-	// Auth
-	mux.HandleFunc("/api/auth/register", register)
-	mux.HandleFunc("/api/auth/login", login)
+	// Custom 404
+	r.NoRoute(func(c *gin.Context) {
+		respondError(c, 404, "Route not found")
+	})
 
-	// Protected Routes
-	mux.Handle("/api/address", authMiddleware(http.HandlerFunc(addressRootHandler)))
-	mux.Handle("/api/address/", authMiddleware(http.HandlerFunc(addressByIDHandler)))
+	api := r.Group("/api")
+	{
+		// Auth Routes
+		auth := api.Group("/auth")
+		{
+			auth.POST("/register", register)
+			auth.POST("/login", login)
+		}
 
-	// Default 404 เป็น JSON
-	mux.HandleFunc("/", notFoundHandler)
-
-	// Middleware
-	handler := errorMiddleware(mux)
+		// Protected Routes
+		address := api.Group("/address")
+		address.Use(AuthMiddleware()) // Middleware
+		{
+			address.GET("", getAllAddress)
+			address.POST("", createAddress)
+			address.GET("/:id", getAddressByID)
+			address.PUT("/:id", updateAddress)
+			address.DELETE("/:id", deleteAddress)
+		}
+	}
 
 	log.Println("Server running at :8080")
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	r.Run(":8080")
 }

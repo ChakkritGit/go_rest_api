@@ -1,41 +1,29 @@
 package main
 
 import (
-	"log"
-	"net/http"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 var jwtSecret = []byte("my_secret_key")
 
-// Error Middleware (กัน panic)
-func errorMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			if err := recover(); err != nil {
-				log.Println("PANIC:", err)
-				respondError(w, http.StatusInternalServerError, "Internal Server Error")
-			}
-		}()
-		next.ServeHTTP(w, r)
-	})
-}
-
-// JWT Middleware
-func authMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
+// JWT Middleware for Gin
+func AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			respondError(w, http.StatusUnauthorized, "Missing token")
+			respondError(c, 401, "Missing token")
+			c.Abort() // หยุดการทำงานของ Handler ถัดไป
 			return
 		}
 
 		// Bearer <token>
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 {
-			respondError(w, http.StatusUnauthorized, "Invalid token format")
+			respondError(c, 401, "Invalid token format")
+			c.Abort()
 			return
 		}
 
@@ -45,14 +33,16 @@ func authMiddleware(next http.Handler) http.Handler {
 		})
 
 		if err != nil || !token.Valid {
-			respondError(w, http.StatusUnauthorized, "Invalid token")
+			respondError(c, 401, "Invalid token")
+			c.Abort()
 			return
 		}
 
-		next.ServeHTTP(w, r)
-	})
-}
+		// ถ้าต้องการเก็บ user_id ไว้ใช้ต่อ
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			c.Set("user_id", claims["user_id"])
+		}
 
-func notFoundHandler(w http.ResponseWriter, r *http.Request) {
-	respondError(w, http.StatusNotFound, "Route not found")
+		c.Next() // ไปยัง Handler ถัดไป
+	}
 }
