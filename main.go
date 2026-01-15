@@ -22,8 +22,6 @@ func main() {
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
 
-	r.Static("/uploads", "./uploads")
-
 	// [เพิ่ม] จำกัดขนาดไฟล์ Upload ที่ 10MB (ใส่ก่อนเข้า Route อื่นๆ)
 	r.Use(utils.MaxSizeMiddleware(10))
 
@@ -33,6 +31,7 @@ func main() {
 
 	api := r.Group("/api")
 	{
+		api.Static("/uploads", "./uploads")
 		// Auth Routes
 		auth := api.Group("/auth")
 		{
