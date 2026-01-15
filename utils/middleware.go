@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"net/http"
 	"os"
 	"strings"
 
@@ -47,5 +48,12 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		c.Next() // ไปยัง Handler ถัดไป
+	}
+}
+
+func MaxSizeMiddleware(limitMB int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, limitMB*1024*1024)
+		c.Next()
 	}
 }

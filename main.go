@@ -22,6 +22,11 @@ func main() {
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
 
+	r.Static("/uploads", "./uploads")
+
+	// [เพิ่ม] จำกัดขนาดไฟล์ Upload ที่ 10MB (ใส่ก่อนเข้า Route อื่นๆ)
+	r.Use(utils.MaxSizeMiddleware(10))
+
 	r.NoRoute(func(c *gin.Context) {
 		utils.RespondError(c, 404, "Route not found")
 	})
