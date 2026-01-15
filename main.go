@@ -2,13 +2,14 @@ package main
 
 import (
 	"go_rest/controllers"
+	"go_rest/database"
 	"go_rest/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	utils.ConnectDB()
+	database.ConnectDB()
 
 	r := gin.Default() // ใช้ Default ซึ่งรวม Logger และ Recovery
 	// r.SetTrustedProxies([]string{"192.168.1.2"}) // Server Proxy แยกต่างหาก (ระบุ IP ของ Proxy นั้น)

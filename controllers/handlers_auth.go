@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"go_rest/database"
 	"go_rest/models"
 	"go_rest/utils"
 	"net/http"
@@ -25,7 +26,7 @@ func Register(c *gin.Context) {
 		Password: string(hash),
 	}
 
-	if err := utils.DB.Create(&user).Error; err != nil {
+	if err := database.DB.Create(&user).Error; err != nil {
 		utils.RespondError(c, http.StatusBadRequest, "Username already exists")
 		return
 	}
@@ -43,7 +44,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	if err := utils.DB.Where("username = ?", input.Username).First(&user).Error; err != nil {
+	if err := database.DB.Where("username = ?", input.Username).First(&user).Error; err != nil {
 		utils.RespondError(c, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}

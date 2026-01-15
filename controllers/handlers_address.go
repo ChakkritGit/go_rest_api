@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"go_rest/database"
 	"go_rest/models"
 	"go_rest/utils"
 	"net/http"
@@ -12,7 +13,7 @@ import (
 // GET /api/address
 func GetAllAddress(c *gin.Context) {
 	var list []models.AddressBook
-	utils.DB.Find(&list)
+	database.DB.Find(&list)
 	utils.RespondJSON(c, http.StatusOK, "success", list)
 }
 
@@ -24,7 +25,7 @@ func CreateAddress(c *gin.Context) {
 		return
 	}
 
-	utils.DB.Create(&input)
+	database.DB.Create(&input)
 	utils.RespondJSON(c, http.StatusCreated, "created", input)
 }
 
@@ -37,7 +38,7 @@ func GetAddressByID(c *gin.Context) {
 	}
 
 	var item models.AddressBook
-	if err := utils.DB.First(&item, id).Error; err != nil {
+	if err := database.DB.First(&item, id).Error; err != nil {
 		utils.RespondError(c, http.StatusNotFound, "Not found")
 		return
 	}
@@ -53,7 +54,7 @@ func UpdateAddress(c *gin.Context) {
 	}
 
 	var item models.AddressBook
-	if err := utils.DB.First(&item, id).Error; err != nil {
+	if err := database.DB.First(&item, id).Error; err != nil {
 		utils.RespondError(c, http.StatusNotFound, "Not found")
 		return
 	}
@@ -70,7 +71,7 @@ func UpdateAddress(c *gin.Context) {
 	item.Code = input.Code
 	item.Phone = input.Phone
 
-	utils.DB.Save(&item)
+	database.DB.Save(&item)
 	utils.RespondJSON(c, http.StatusOK, "updated", item)
 }
 
@@ -83,7 +84,7 @@ func DeleteAddress(c *gin.Context) {
 	}
 
 	// ใช้ DB.Delete โดยระบุ Struct ว่างและ ID
-	if err := utils.DB.Delete(&models.AddressBook{}, id).Error; err != nil {
+	if err := database.DB.Delete(&models.AddressBook{}, id).Error; err != nil {
 		utils.RespondError(c, http.StatusNotFound, "Not found")
 		return
 	}
