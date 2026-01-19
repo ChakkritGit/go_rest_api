@@ -19,19 +19,25 @@ func AuthMiddleware() gin.HandlerFunc {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			RespondError(c, 401, "Missing token")
-			c.Abort() // หยุดการทำงานของ Handler ถัดไป
+			c.Abort()
 			return
 		}
 
 		// Bearer <token>
 		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 {
+
+		var tokenStr string
+
+		if len(parts) == 2 {
+			tokenStr = parts[1]
+		} else if len(parts) == 1 {
+			tokenStr = parts[0]
+		} else {
 			RespondError(c, 401, "Invalid token format")
 			c.Abort()
 			return
 		}
 
-		tokenStr := parts[1]
 		token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
 			return GetJWTSecret(), nil
 		})
@@ -42,12 +48,11 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// ถ้าต้องการเก็บ user_id ไว้ใช้ต่อ
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
 			c.Set("user_id", claims["user_id"])
 		}
 
-		c.Next() // ไปยัง Handler ถัดไป
+		c.Next()
 	}
 }
 

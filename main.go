@@ -4,25 +4,49 @@ import (
 	"go_rest/controllers"
 	"go_rest/database"
 	"go_rest/utils"
+	"log"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	docs "go_rest/docs"
 )
 
+// @title           Go REST API
+// @version         1.0
+// @description     This is a sample server for managing addresses.
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name    API Support
+// @contact.url     http://www.swagger.io/support
+// @contact.email   support@swagger.io
+
+// @license.name    Apache 2.0
+// @license.url     http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host            localhost:8080
+// @BasePath        /api
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
-	// 1. เชื่อมต่อ DB (ConnectDB จะเซ็ตค่าให้ database.DB)
 	database.ConnectDB()
 
-	// ดึง instance ของ DB มาเก็บไว้เพื่อส่งต่อ
 	db := database.DB
 
-	// 2. สร้าง Controller Instances โดยส่ง db เข้าไป (Dependency Injection)
 	authCtrl := controllers.NewAuthController(db)
 	addressCtrl := controllers.NewAddressController(db)
+
+	docs.SwaggerInfo.Title = "My Go REST API"
+	docs.SwaggerInfo.Description = "This is a sample server."
+	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.Host = "localhost:8080"
+	docs.SwaggerInfo.BasePath = "/api"
 
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
 
-	// [เพิ่ม] จำกัดขนาดไฟล์ Upload ที่ 10MB (ใส่ก่อนเข้า Route อื่นๆ)
 	r.Use(utils.MaxSizeMiddleware(10))
 
 	r.NoRoute(func(c *gin.Context) {
@@ -30,12 +54,15 @@ func main() {
 	})
 
 	api := r.Group("/api")
+
+	api.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	api.Static("/uploads", "./uploads")
 	{
-		api.Static("/uploads", "./uploads")
+		api.GET("/healthcheck", controllers.HealthCheckHandler)
+
 		// Auth Routes
 		auth := api.Group("/auth")
 		{
-			// เรียกใช้ Method ผ่านตัวแปร authCtrl
 			auth.POST("/register", authCtrl.Register)
 			auth.POST("/login", authCtrl.Login)
 		}
@@ -44,7 +71,6 @@ func main() {
 		address := api.Group("/address")
 		address.Use(utils.AuthMiddleware())
 		{
-			// เรียกใช้ Method ผ่านตัวแปร addressCtrl
 			address.GET("", addressCtrl.GetAllAddress)
 			address.POST("", addressCtrl.CreateAddress)
 			address.GET("/:id", addressCtrl.GetAddressByID)
@@ -53,5 +79,5 @@ func main() {
 		}
 	}
 
-	r.Run(":8080")
+	log.Fatal((r.Run(":8080")))
 }

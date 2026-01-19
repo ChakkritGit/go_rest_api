@@ -12,7 +12,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// 1. สร้าง Struct และ Constructor
 type AuthController struct {
 	DB *gorm.DB
 }
@@ -21,12 +20,18 @@ func NewAuthController(db *gorm.DB) *AuthController {
 	return &AuthController{DB: db}
 }
 
-// 2. เปลี่ยน function เป็น method (มี h *AuthController นำหน้า)
-// และใช้ h.DB แทน database.DB
-
-// POST /api/auth/register
+// Register godoc
+// @Summary      Register a new user
+// @Description  Register a new user with username and password
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        input body models.LoginAndRegisterInput true "User Credentials"
+// @Success      201  {object}  utils.APIResponse
+// @Failure      400  {object}  utils.APIResponse
+// @Router       /auth/register [post]
 func (h *AuthController) Register(c *gin.Context) {
-	var input models.User
+	var input models.LoginAndRegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		utils.RespondError(c, http.StatusBadRequest, "Invalid request")
 		return
@@ -38,7 +43,6 @@ func (h *AuthController) Register(c *gin.Context) {
 		Password: string(hash),
 	}
 
-	// ใช้ h.DB
 	if err := h.DB.Create(&user).Error; err != nil {
 		utils.RespondError(c, http.StatusBadRequest, "Username already exists")
 		return
@@ -47,9 +51,19 @@ func (h *AuthController) Register(c *gin.Context) {
 	utils.RespondJSON(c, http.StatusCreated, "registered", nil)
 }
 
-// POST /api/auth/login
+// Login godoc
+// @Summary      Login user
+// @Description  Login to get JWT Token
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        input body models.LoginAndRegisterInput true "User Credentials"
+// @Success      200  {object}  utils.APIResponse
+// @Failure      400  {object}  utils.APIResponse "Invalid Input"
+// @Failure      401  {object}  utils.APIResponse "Invalid username or password"
+// @Router       /auth/login [post]
 func (h *AuthController) Login(c *gin.Context) {
-	var input models.User
+	var input models.LoginAndRegisterInput
 	var user models.User
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -57,17 +71,15 @@ func (h *AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	// ใช้ h.DB
 	if err := h.DB.Where("username = ?", input.Username).First(&user).Error; err != nil {
-		utils.RespondError(c, http.StatusUnauthorized, "Invalid credentials")
+		utils.RespondError(c, http.StatusUnauthorized, "Invalid username or password")
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
-		utils.RespondError(c, http.StatusUnauthorized, "Invalid credentials")
+		utils.RespondError(c, http.StatusUnauthorized, "Invalid username or password")
 		return
 	}
-
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),

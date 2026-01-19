@@ -10,7 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// 1. สร้าง Struct และ Constructor
 type AddressController struct {
 	DB *gorm.DB
 }
@@ -19,30 +18,49 @@ func NewAddressController(db *gorm.DB) *AddressController {
 	return &AddressController{DB: db}
 }
 
-// 2. เปลี่ยน function เป็น method และใช้ h.DB
-
-// GET /api/address
+// GetAllAddress godoc
+// @Summary      Get all addresses
+// @Description  Retrieve a list of all addresses
+// @Tags         Address
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {array}   models.AddressBook
+// @Failure      500  {object}  utils.APIResponse
+// @Router       /address [get]
 func (h *AddressController) GetAllAddress(c *gin.Context) {
 	var list []models.AddressBook
 	h.DB.Find(&list)
 	utils.RespondJSON(c, http.StatusOK, "success", list)
 }
 
-// POST /api/address
+// CreateAddress godoc
+// @Summary      Create a new address
+// @Description  Create address with image upload
+// @Tags         Address
+// @Accept       multipart/form-data
+// @Produce      json
+// @Security     BearerAuth
+// @Param        firstname formData string true "Firstname"
+// @Param        lastname  formData string true "Lastname"
+// @Param        code      formData int    true "Code"
+// @Param        phone     formData string true "Phone"
+// @Param        image     formData file   false "Address Image"
+// @Success      201  {object}  utils.APIResponse
+// @Failure      400  {object}  utils.APIResponse
+// @Router       /address [post]
 func (h *AddressController) CreateAddress(c *gin.Context) {
-	// 1. รับค่าจาก Form (ไม่ใช่ JSON แล้ว)
 	firstname := c.PostForm("firstname")
 	lastname := c.PostForm("lastname")
+	phone := c.PostForm("phone")
+
 	codeStr := c.PostForm("code")
-	codeInt, err := strconv.Atoi(codeStr)
-	Phone := c.PostForm("Phone")
+	codeInt, _ := strconv.Atoi(codeStr)
 
 	var imagePath string
 
-	// 2. รับไฟล์รูป (key ชื่อ "image")
 	file, err := c.FormFile("image")
-	if err == nil { // ถ้ามีการแนบไฟล์มา
-		// เรียก Utils ง่ายๆ บรรทัดเดียว!
+	if err == nil {
 		savedPath, err := utils.SaveFile(c, file, "address")
 		if err != nil {
 			utils.RespondError(c, http.StatusBadRequest, err.Error())
@@ -51,20 +69,30 @@ func (h *AddressController) CreateAddress(c *gin.Context) {
 		imagePath = savedPath
 	}
 
-	// 3. สร้างข้อมูล
 	input := models.AddressBook{
 		Firstname: firstname,
 		Lastname:  lastname,
 		Code:      codeInt,
-		Phone:     Phone,
-		Image:     imagePath, // บันทึก Path ลง DB
+		Phone:     phone,
+		Image:     imagePath,
 	}
 
 	h.DB.Create(&input)
 	utils.RespondJSON(c, http.StatusCreated, "created", input)
 }
 
-// GET /api/address/:id
+// GetAddressByID godoc
+// @Summary      Get address by ID
+// @Description  Retrieve address by ID
+// @Tags         Address
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      int  true  "Address ID"
+// @Success      200  {object}  utils.APIResponse
+// @Failure      400  {object}  utils.APIResponse
+// @Failure      404  {object}  utils.APIResponse
+// @Router       /address/{id} [get]
 func (h *AddressController) GetAddressByID(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -80,7 +108,23 @@ func (h *AddressController) GetAddressByID(c *gin.Context) {
 	utils.RespondJSON(c, http.StatusOK, "success", item)
 }
 
-// PUT /api/address/:id
+// UpdateAddress godoc
+// @Summary      Update address by ID
+// @Description  Update address with optional image upload
+// @Tags         Address
+// @Accept       multipart/form-data
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id        path     int    true  "Address ID"
+// @Param        firstname formData string true  "Firstname"
+// @Param        lastname  formData string true  "Lastname"
+// @Param        code      formData int    true  "Code"
+// @Param        phone     formData string true  "Phone"
+// @Param        image     formData file   false "Address Image"
+// @Success      200  {object}  utils.APIResponse
+// @Failure      400  {object}  utils.APIResponse
+// @Failure      404  {object}  utils.APIResponse
+// @Router       /address/{id} [put]
 func (h *AddressController) UpdateAddress(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -96,38 +140,47 @@ func (h *AddressController) UpdateAddress(c *gin.Context) {
 
 	file, err := c.FormFile("image")
 	if err == nil {
-		// 1. ลบรูปเก่าทิ้ง (ถ้ามี)
 		utils.RemoveFile(item.Image)
 
-		// 2. อัปโหลดรูปใหม่
 		newPath, err := utils.SaveFile(c, file, "address")
 		if err != nil {
-			utils.RespondError(c, 400, err.Error())
+			utils.RespondError(c, http.StatusBadRequest, err.Error())
 			return
 		}
-		item.Image = newPath // อัปเดต Path
+		item.Image = newPath
 	}
 
-	h.DB.Save(&item)
+	item.Firstname = c.PostForm("firstname")
+	item.Lastname = c.PostForm("lastname")
+	item.Phone = c.PostForm("phone")
 
-	var input models.AddressBook
-	if err := c.ShouldBindJSON(&input); err != nil {
-		utils.RespondError(c, http.StatusBadRequest, "Invalid body")
-		return
+	if codeStr := c.PostForm("code"); codeStr != "" {
+		codeInt, _ := strconv.Atoi(codeStr)
+		item.Code = codeInt
 	}
-
-	item.Firstname = input.Firstname
-	item.Lastname = input.Lastname
-	item.Code = input.Code
-	item.Phone = input.Phone
 
 	h.DB.Save(&item)
 	utils.RespondJSON(c, http.StatusOK, "updated", item)
 }
 
-// DELETE /api/address/:id
+// DeleteAddress godoc
+// @Summary      Delete address by ID
+// @Description  Delete address and associated image
+// @Tags         Address
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      int  true  "Address ID"
+// @Success      200  {object}  utils.APIResponse
+// @Failure      400  {object}  utils.APIResponse
+// @Failure      404  {object}  utils.APIResponse
+// @Router       /address/{id} [delete]
 func (h *AddressController) DeleteAddress(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		utils.RespondError(c, http.StatusBadRequest, "Invalid ID")
+		return
+	}
 
 	var item models.AddressBook
 	if err := h.DB.First(&item, id).Error; err != nil {
@@ -135,8 +188,6 @@ func (h *AddressController) DeleteAddress(c *gin.Context) {
 		return
 	}
 
-	// [เพิ่ม] ลบรูปไฟล์จริงออกจากเครื่องก่อน
-	// เรียก Utils ง่ายๆ บรรทัดเดียว!
 	utils.RemoveFile(item.Image)
 
 	h.DB.Delete(&item)

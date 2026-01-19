@@ -1,0 +1,298 @@
+basePath: /api
+definitions:
+  models.AddressBook:
+    properties:
+      code:
+        type: integer
+      created_at:
+        type: string
+      firstname:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      lastname:
+        type: string
+      phone:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.LoginAndRegisterInput:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  utils.APIResponse:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server for managing addresses.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Go REST API
+  version: "1.0"
+paths:
+  /address:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all addresses
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.AddressBook'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all addresses
+      tags:
+      - Address
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create address with image upload
+      parameters:
+      - description: Firstname
+        in: formData
+        name: firstname
+        required: true
+        type: string
+      - description: Lastname
+        in: formData
+        name: lastname
+        required: true
+        type: string
+      - description: Code
+        in: formData
+        name: code
+        required: true
+        type: integer
+      - description: Phone
+        in: formData
+        name: phone
+        required: true
+        type: string
+      - description: Address Image
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new address
+      tags:
+      - Address
+  /address/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete address and associated image
+      parameters:
+      - description: Address ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete address by ID
+      tags:
+      - Address
+    get:
+      consumes:
+      - application/json
+      description: Retrieve address by ID
+      parameters:
+      - description: Address ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Get address by ID
+      tags:
+      - Address
+    put:
+      consumes:
+      - multipart/form-data
+      description: Update address with optional image upload
+      parameters:
+      - description: Address ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Firstname
+        in: formData
+        name: firstname
+        required: true
+        type: string
+      - description: Lastname
+        in: formData
+        name: lastname
+        required: true
+        type: string
+      - description: Code
+        in: formData
+        name: code
+        required: true
+        type: integer
+      - description: Phone
+        in: formData
+        name: phone
+        required: true
+        type: string
+      - description: Address Image
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Update address by ID
+      tags:
+      - Address
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login to get JWT Token
+      parameters:
+      - description: User Credentials
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginAndRegisterInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Invalid Input
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "401":
+          description: Invalid username or password
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Login user
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with username and password
+      parameters:
+      - description: User Credentials
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginAndRegisterInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIResponse'
+      summary: Register a new user
+      tags:
+      - Auth
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
